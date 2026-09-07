@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(g *)",
+      "Bash(mise *)",
+      "Bash(moon *)",
+      "Bash(curl *)",
+      "Bash(gh *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Bash(echo *)",
+      "Bash(which *)",
+      "Bash(python3 *)",
+      "Bash(jq *)"
+    ]
+  }
+}
