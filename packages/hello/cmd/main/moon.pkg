@@ -1,0 +1,5 @@
+// import {
+//   "foolishell/hello" @lib,
+// }
+
+pkgtype(kind: "executable")

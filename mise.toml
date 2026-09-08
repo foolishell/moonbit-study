@@ -1,0 +1,14 @@
+[env]
+MOON_HOME = "{{config_root}}/.moon"
+_.path = ["{{config_root}}/.moon/bin"]
+
+[tasks."moonbit:install"]
+description = "Install or upgrade MoonBit toolchain"
+run = """
+MOON_HOME={{config_root}}/.moon \\
+  bash -c "$(curl -fsSL https://cli.moonbitlang.com/install/unix.sh)"
+"""
+
+[tasks."moonbit:version"]
+description = "Show installed MoonBit version"
+run = "moon version"
