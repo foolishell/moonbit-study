@@ -3,3 +3,5 @@
 # MoonBit
 .moon/
 _build/
+.mooncakes/
+.repos/

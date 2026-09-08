@@ -1,3 +1,4 @@
 members = [
   "./packages/hello",
+  "./packages/server",
 ]
