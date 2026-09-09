@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MoonBit async/http vs Rust axum</title>
+<title>MoonBit Web ライブラリ比較 + Rust axum</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -13,12 +13,14 @@
     --text: #e2e8f0;
     --muted: #94a3b8;
     --moon: #f59e0b;
+    --mars: #10b981;
+    --pony: #a855f7;
     --axum: #3b82f6;
     --green: #22c55e;
     --red: #ef4444;
   }
   body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; line-height: 1.6; padding: 40px 20px; }
-  .container { max-width: 900px; margin: 0 auto; }
+  .container { max-width: 1100px; margin: 0 auto; }
 
   h1 { font-size: 1.8rem; margin-bottom: 8px; }
   h2 { font-size: 1.2rem; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin: 40px 0 20px; }
@@ -26,33 +28,35 @@
   p  { color: var(--muted); margin: 8px 0; }
   .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 40px; }
 
-  /* Overview table */
   table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
   th { background: var(--surface); padding: 10px 16px; text-align: left; color: var(--muted); font-weight: 600; }
   td { padding: 9px 16px; border-bottom: 1px solid var(--border); }
   td:first-child { color: var(--muted); font-weight: 600; }
   tr:last-child td { border-bottom: none; }
 
-  /* Badges */
   .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
   .moon-badge { background: #f59e0b22; color: var(--moon); border: 1px solid #f59e0b44; }
+  .mars-badge { background: #10b98122; color: var(--mars); border: 1px solid #10b98144; }
+  .pony-badge { background: #a855f722; color: var(--pony); border: 1px solid #a855f744; }
   .axum-badge { background: #3b82f622; color: var(--axum); border: 1px solid #3b82f644; }
 
-  /* Two-column layout */
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
   .col { background: var(--surface); border-radius: 8px; padding: 16px; }
-  .col-moon { border-top: 3px solid var(--moon); }
-  .col-axum { border-top: 3px solid var(--axum); }
+  .col-moon  { border-top: 3px solid var(--moon); }
+  .col-mars  { border-top: 3px solid var(--mars); }
+  .col-pony  { border-top: 3px solid var(--pony); }
+  .col-axum  { border-top: 3px solid var(--axum); }
   .col-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 10px; }
   .col-moon .col-title { color: var(--moon); }
+  .col-mars .col-title { color: var(--mars); }
+  .col-pony .col-title { color: var(--pony); }
   .col-axum .col-title { color: var(--axum); }
 
-  /* Code blocks */
   pre { background: #020617; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 0.82rem; margin: 8px 0; }
   code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
   p code { background: var(--surface); padding: 1px 5px; border-radius: 3px; font-size: 0.85em; color: #c4b5fd; }
 
-  /* Pro/con list */
   ul.pcon { list-style: none; font-size: 0.85rem; }
   ul.pcon li { padding: 3px 0; color: var(--muted); }
   ul.pcon li::before { margin-right: 6px; }
@@ -60,164 +64,289 @@
   ul.pcon li.con::before { content: '❌'; }
   ul.pcon li.neu::before { content: '△'; }
 
-  /* Architecture diagram */
   .arch { background: var(--surface); border-radius: 8px; padding: 20px; }
   .arch-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
   .arch-row:last-child { margin-bottom: 0; }
   .arch-label { font-size: 0.78rem; font-weight: 700; margin-bottom: 8px; }
   .arch-label.moon { color: var(--moon); }
+  .arch-label.mars { color: var(--mars); }
+  .arch-label.pony { color: var(--pony); }
   .arch-label.axum { color: var(--axum); }
   .arch-box { border: 2px solid; border-radius: 6px; padding: 6px 12px; text-align: center; min-width: 90px; }
   .arch-box.moon { border-color: #f59e0b66; }
+  .arch-box.mars { border-color: #10b98166; }
+  .arch-box.pony { border-color: #a855f766; }
   .arch-box.axum { border-color: #3b82f666; }
   .arch-box .main { font-size: 0.8rem; font-weight: 700; }
   .arch-box.moon .main { color: var(--moon); }
+  .arch-box.mars .main { color: var(--mars); }
+  .arch-box.pony .main { color: var(--pony); }
   .arch-box.axum .main { color: var(--axum); }
   .arch-box .sub { font-size: 0.7rem; color: var(--muted); }
   .arrow { color: #475569; font-size: 1rem; }
 
-  /* Summary table */
   .summary td:not(:first-child) { text-align: center; }
   .summary th:not(:first-child) { text-align: center; }
   .ok  { color: var(--green); }
   .ng  { color: var(--red); }
   .med { color: var(--moon); }
 
-  /* Section divider */
   hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+  .section-title { font-size: 1.5rem; font-weight: 700; margin: 60px 0 8px; padding-top: 20px; border-top: 2px solid var(--border); }
+  .note { background: var(--surface); border-left: 3px solid var(--muted); border-radius: 4px; padding: 10px 16px; font-size: 0.85rem; color: var(--muted); margin: 12px 0; }
 </style>
 </head>
 <body>
 <div class="container">
 
-  <h1>MoonBit <code>async/http</code> vs Rust axum</h1>
-  <p class="subtitle">低レベル HTTP ライブラリと成熟した Web フレームワークの実用比較</p>
+  <h1>MoonBit Web ライブラリ比較 + Rust axum</h1>
+  <p class="subtitle">公式低レベル API・サードパーティフレームワーク・成熟した Rust フレームワークの実用比較</p>
 
-  <!-- Overview -->
-  <h2>概要</h2>
+  <!-- ===================== PART 1: MoonBit Libraries ===================== -->
+  <div class="section-title">Part 1 — MoonBit HTTP ライブラリ比較</div>
+
+  <h2>ライブラリ一覧</h2>
   <table>
-    <thead><tr><th>項目</th><th>MoonBit async/http</th><th>Rust axum</th></tr></thead>
+    <thead><tr><th>ライブラリ</th><th>バージョン</th><th>カテゴリ</th><th>インスパイア元</th><th>ターゲット</th><th>状態</th></tr></thead>
     <tbody>
-      <tr><td>抽象レベル</td><td>低〜中（ローレベル API）</td><td>高（型安全ルーター）</td></tr>
-      <tr><td>成熟度</td><td>実験的</td><td>本番実績あり</td></tr>
-      <tr><td>ターゲット</td><td>native / wasm / js</td><td>native</td></tr>
-      <tr><td>非同期モデル</td><td>コルーチン（async/await）</td><td>Tokio（async/await）</td></tr>
-      <tr><td>エコシステム</td><td>黎明期</td><td>成熟（crates.io）</td></tr>
-      <tr><td>依存ライブラリ</td><td><code>moonbitlang/async</code> 1つ</td><td>hyper + Tower + Tokio</td></tr>
+      <tr>
+        <td><span class="badge moon-badge">moonbitlang/async</span></td>
+        <td>0.21.2</td>
+        <td>HTTP サーバー（低レベル）</td>
+        <td>—</td>
+        <td>native / wasm / js</td>
+        <td>公式・実験的</td>
+      </tr>
+      <tr>
+        <td><span class="badge mars-badge">mizchi/mars</span></td>
+        <td>0.3.11</td>
+        <td>HTTP サーバーフレームワーク</td>
+        <td>Hono (TypeScript)</td>
+        <td>native / Node.js</td>
+        <td>サードパーティ・活発開発中</td>
+      </tr>
+      <tr>
+        <td><span class="badge pony-badge">jaredzhou/pony</span></td>
+        <td>0.4.0</td>
+        <td>HTTP ルーターライブラリ</td>
+        <td>Chi (Go)</td>
+        <td>native</td>
+        <td>サードパーティ・安定</td>
+      </tr>
+      <tr>
+        <td><td>oboard/mio</td></td>
+        <td>0.5.4</td>
+        <td>HTTP <strong>クライアント</strong>（サーバーではない）</td>
+        <td>reqwest (Rust)</td>
+        <td>native / js</td>
+        <td>サードパーティ・HTTP/1.1・2・3 対応</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note">oboard/mio は HTTP クライアントライブラリです。サーバーフレームワークではないため以降の比較から除外します。</div>
+
+  <!-- Feature comparison table -->
+  <h2>機能比較</h2>
+  <table>
+    <thead><tr>
+      <th>機能</th>
+      <th><span class="badge moon-badge">async/http</span></th>
+      <th><span class="badge mars-badge">mars</span></th>
+      <th><span class="badge pony-badge">pony</span></th>
+    </tr></thead>
+    <tbody>
+      <tr><td>パスパラメータ</td><td class="ng">❌ 自前実装</td><td class="ok">✅ <code>:id</code></td><td class="ok">✅ <code>{id}</code></td></tr>
+      <tr><td>ワイルドカードルート</td><td class="ng">❌</td><td class="ok">✅</td><td class="ok">✅ <code>*</code></td></tr>
+      <tr><td>ミドルウェア</td><td class="ng">❌</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+      <tr><td>SSE / WebSocket</td><td class="ng">❌</td><td class="ok">✅ SSE あり</td><td class="ng">❌</td></tr>
+      <tr><td>サブアプリ</td><td class="ng">❌</td><td class="ok">✅ mount</td><td class="med">△ グループ</td></tr>
+      <tr><td>全メソッド一括登録</td><td class="ng">❌</td><td class="med">△</td><td class="ok">✅ <code>any()</code></td></tr>
+      <tr><td>ctx ヘルパー</td><td class="ng">❌</td><td class="ok">✅ <code>ctx.json()</code> など</td><td class="ok">✅ <code>ctx.json()</code> など</td></tr>
+      <tr><td>Node.js 互換</td><td class="ng">❌</td><td class="ok">✅</td><td class="ng">❌</td></tr>
+      <tr><td>公式サポート</td><td class="ok">✅</td><td class="ng">❌</td><td class="ng">❌</td></tr>
+      <tr><td>追加依存なし</td><td class="ok">✅</td><td class="ng">❌</td><td class="ng">❌</td></tr>
     </tbody>
   </table>
 
-  <!-- Routing -->
+  <!-- Routing comparison 3-col -->
   <h2>ルーティング</h2>
-  <div class="cols">
+  <div class="cols3">
     <div class="col col-moon">
-      <div class="col-title">MoonBit</div>
-      <pre><code>server.run_forever() &lt;| ((req, _, conn) => {
-  match (req.meth, req.path) {
-    (Get, "/")       => handle_root(conn)
-    (Get, "/health") => handle_health(conn)
-    _                => send_404(conn)
-  }
-})</code></pre>
+      <div class="col-title">async/http — パターンマッチ</div>
+      <pre><code>server.run_forever() &lt;|
+  ((req, _, conn) => {
+    match (req.meth, req.path) {
+      (Get, "/") =>
+        handle_root(conn)
+      (Get, "/health") =>
+        handle_health(conn)
+      _ =>
+        send_404(conn)
+    }
+  })</code></pre>
       <ul class="pcon">
-        <li class="pro">シンプルで追加依存なし</li>
-        <li class="pro">パターンマッチで網羅性チェック</li>
-        <li class="con">パスパラメータ非サポート（自前実装）</li>
+        <li class="pro">網羅性チェックあり</li>
+        <li class="con">パスパラメータ非サポート</li>
         <li class="con">ミドルウェアなし</li>
       </ul>
     </div>
-    <div class="col col-axum">
-      <div class="col-title">axum</div>
-      <pre><code>let app = Router::new()
-    .route("/", get(root))
-    .route("/health", get(health))
-    .route("/users/:id", get(user))
-    .layer(TraceLayer::new_for_http());
+    <div class="col col-mars">
+      <div class="col-title">mars — Hono スタイル</div>
+      <pre><code>let app = @mars.App::new()
 
-axum::serve(listener, app).await?;</code></pre>
+app.get("/", async fn(ctx) {
+  ctx.text("Hello!")
+})
+
+app.get("/users/:id", async fn(ctx) {
+  let id = ctx.param("id")
+  ctx.json("{\"id\":\"\{id}\"}")
+})
+
+app.use_(logger_middleware)
+app.listen("0.0.0.0:3000")</code></pre>
       <ul class="pcon">
-        <li class="pro">宣言的ルーター</li>
-        <li class="pro">パスパラメータを型安全に抽出</li>
-        <li class="pro">Tower ミドルウェアを合成可能</li>
-        <li class="con">学習コストがやや高い</li>
+        <li class="pro">パスパラメータ対応</li>
+        <li class="pro">ミドルウェアチェーン</li>
+        <li class="pro">Node.js でも動作</li>
+      </ul>
+    </div>
+    <div class="col col-pony">
+      <div class="col-title">pony — Chi スタイル</div>
+      <pre><code>let r = @pony.Router::Router()
+
+r.add(
+  @pony.HttpMethod::Get, "/",
+  fn(ctx) { ctx.text("Hello!") },
+)
+
+r.add(
+  @pony.HttpMethod::Get,
+  "/users/{id}",
+  fn(ctx) {
+    let id = ctx.get_param("id")
+    ctx.json("{\"id\":\"\{id}\"}")
+  },
+)
+
+@pony.start("0.0.0.0:3000", r)</code></pre>
+      <ul class="pcon">
+        <li class="pro">ラジックスツリールーター</li>
+        <li class="pro">ワイルドカード <code>*</code></li>
+        <li class="neu">mars よりシンプルな API</li>
       </ul>
     </div>
   </div>
 
-  <!-- Request/Response -->
-  <h2>リクエスト / レスポンス</h2>
-  <div class="cols">
+  <!-- Request/Response 3-col -->
+  <h2>レスポンス送信</h2>
+  <div class="cols3">
     <div class="col col-moon">
-      <div class="col-title">MoonBit — 手動でヘッダーとボディを送信</div>
+      <div class="col-title">async/http</div>
       <pre><code>async fn send_json(
   conn : @http.ServerConnection,
-  code : Int,
-  body : String,
+  code : Int, body : String,
 ) -> Unit {
   let headers : @http.Headers = Map([
-    (@http.CaseInsensitiveString("Content-Type"),
+    (@http.CaseInsensitiveString(
+      "Content-Type"),
      "application/json"),
-    (@http.CaseInsensitiveString("Content-Length"),
+    (@http.CaseInsensitiveString(
+      "Content-Length"),
      body.length().to_string()),
   ])
-  conn.send_response(code, "OK", extra_headers=headers)
+  conn.send_response(
+    code, "OK",
+    extra_headers=headers)
   conn.write_string(body)
   conn.end_response()
 }</code></pre>
+      <p>ヘッダー・ボディ・終端を手動管理</p>
     </div>
-    <div class="col col-axum">
-      <div class="col-title">axum — 型が IntoResponse を実装</div>
-      <pre><code>async fn root() -> impl IntoResponse {
-    Json(json!({"message": "Hello!"}))
-}
+    <div class="col col-mars">
+      <div class="col-title">mars</div>
+      <pre><code>// テキスト
+ctx.text("Hello!")
 
-// エラーも返せる
-async fn user(
-    Path(id): Path<u32>,
-) -> Result&lt;Json&lt;User&gt;, StatusCode&gt; {
-    db::find(id)
-        .await
-        .ok_or(StatusCode::NOT_FOUND)
-        .map(Json)
-}</code></pre>
+// JSON 文字列
+ctx.json("{\"ok\":true}")
+
+// ステータスコード指定
+ctx.status(201)
+ctx.text("Created")
+
+// HTML
+ctx.html("&lt;h1&gt;Hi&lt;/h1&gt;")
+
+// SSE ストリーム
+let stream = ctx.sse()
+stream.send("data", "event")</code></pre>
+      <p>ctx ヘルパーで簡潔に記述</p>
+    </div>
+    <div class="col col-pony">
+      <div class="col-title">pony</div>
+      <pre><code>// テキスト
+ctx.text("Hello!")
+
+// JSON 文字列
+ctx.json("{\"ok\":true}")
+
+// ステータスコード指定
+ctx.status(404)
+ctx.text("Not Found")
+
+// ヘッダー追加
+ctx.set_header(
+  "X-Custom", "value")
+ctx.text("ok")</code></pre>
+      <p>mars と同様の ctx ベース API</p>
     </div>
   </div>
 
-  <!-- Error Handling -->
-  <h2>エラーハンドリング</h2>
-  <div class="cols">
-    <div class="col col-moon">
-      <div class="col-title">MoonBit</div>
-      <p>HTTP レベルのエラーレスポンス変換は手動。<code>catch</code> で拾ってステータスコードにマップする。</p>
-      <pre><code>server.run_forever() &lt;| ((req, _, conn) => {
-  handle(req, conn) catch {
-    NotFound(msg) => send_json(conn, 404, ...)
-    BadRequest    => send_json(conn, 400, ...)
-    _             => send_json(conn, 500, ...)
-  }
-})</code></pre>
+  <!-- Middleware -->
+  <h2>ミドルウェア</h2>
+  <div class="cols2">
+    <div class="col col-mars">
+      <div class="col-title">mars — グローバル &amp; ルート単位</div>
+      <pre><code>// グローバルミドルウェア
+app.use_(async fn(ctx, next) {
+  println("Request: \{ctx.path()}")
+  let res = next(ctx)
+  println("Response sent")
+  res
+})
+
+// ルート単位
+app.get(
+  "/admin",
+  auth_middleware,
+  async fn(ctx) { ctx.text("ok") },
+)</code></pre>
     </div>
-    <div class="col col-axum">
-      <div class="col-title">axum</div>
-      <p><code>IntoResponse</code> を実装した独自エラー型を返すだけ。<code>thiserror</code> と組み合わせて体系的に管理できる。</p>
-      <pre><code>#[derive(thiserror::Error, Debug)]
-enum AppError {
-    #[error("not found")]
-    NotFound,
-}
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        (StatusCode::NOT_FOUND, self.to_string())
-            .into_response()
-    }
-}</code></pre>
+    <div class="col col-pony">
+      <div class="col-title">pony — ルーターレベル</div>
+      <pre><code>// ルーター全体に適用
+r.use_(fn(ctx, next) {
+  println("Before")
+  let res = next(ctx)
+  println("After")
+  res
+})
+
+// グループにミドルウェア
+let api = r.group("/api")
+api.use_(auth_middleware)
+api.add(
+  HttpMethod::Get, "/me",
+  fn(ctx) { ctx.json("...") },
+)</code></pre>
     </div>
   </div>
 
   <!-- Architecture -->
   <h2>アーキテクチャ</h2>
   <div class="arch">
-    <div class="arch-label moon">MoonBit</div>
+    <div class="arch-label moon">moonbitlang/async/http</div>
     <div class="arch-row">
       <div class="arch-box moon"><div class="main">TCP</div><div class="sub">@socket</div></div>
       <span class="arrow">→</span>
@@ -226,6 +355,171 @@ impl IntoResponse for AppError {
       <div class="arch-box moon"><div class="main">match</div><div class="sub">手書きルーター</div></div>
       <span class="arrow">→</span>
       <div class="arch-box moon"><div class="main">Handler</div><div class="sub">async fn</div></div>
+    </div>
+    <div class="arch-label mars" style="margin-top: 20px">mizchi/mars</div>
+    <div class="arch-row">
+      <div class="arch-box moon"><div class="main">async/http</div><div class="sub">土台</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box mars"><div class="main">Trie Router</div><div class="sub">mars</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box mars"><div class="main">Middleware</div><div class="sub">チェーン</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box mars"><div class="main">Handler</div><div class="sub">async fn(ctx)</div></div>
+    </div>
+    <div class="arch-label pony" style="margin-top: 20px">jaredzhou/pony</div>
+    <div class="arch-row">
+      <div class="arch-box moon"><div class="main">async/http</div><div class="sub">土台</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box pony"><div class="main">Radix Tree</div><div class="sub">Router</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box pony"><div class="main">Middleware</div><div class="sub">チェーン</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box pony"><div class="main">Handler</div><div class="sub">fn(ctx)</div></div>
+    </div>
+  </div>
+
+  <!-- Part 1 Summary -->
+  <h2>MoonBit ライブラリまとめ</h2>
+  <table class="summary">
+    <thead><tr>
+      <th>観点</th>
+      <th><span class="badge moon-badge">async/http</span></th>
+      <th><span class="badge mars-badge">mars</span></th>
+      <th><span class="badge pony-badge">pony</span></th>
+    </tr></thead>
+    <tbody>
+      <tr><td>学習コスト</td><td class="ok">低</td><td class="ok">低</td><td class="ok">低</td></tr>
+      <tr><td>ボイラープレート</td><td class="ng">多い</td><td class="ok">少ない</td><td class="ok">少ない</td></tr>
+      <tr><td>パスパラメータ</td><td class="ng">❌</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+      <tr><td>ミドルウェア</td><td class="ng">❌</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+      <tr><td>SSE / WebSocket</td><td class="ng">❌</td><td class="ok">✅</td><td class="ng">❌</td></tr>
+      <tr><td>Node.js 対応</td><td class="ng">❌</td><td class="ok">✅</td><td class="ng">❌</td></tr>
+      <tr><td>依存追加</td><td class="ok">なし</td><td class="med">+1 pkg</td><td class="med">+1 pkg</td></tr>
+      <tr><td>推奨シーン</td><td class="med">シンプル API / 学習</td><td class="ok">実用 Web アプリ</td><td class="ok">シンプルなルーター重視</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ===================== PART 2: vs axum ===================== -->
+  <div class="section-title">Part 2 — MoonBit vs Rust axum</div>
+  <p class="subtitle" style="margin-top: 8px">mars を MoonBit 側の代表として axum と比較</p>
+
+  <h2>概要</h2>
+  <table>
+    <thead><tr><th>項目</th><th>MoonBit (mars)</th><th>Rust axum</th></tr></thead>
+    <tbody>
+      <tr><td>抽象レベル</td><td>高（フレームワーク）</td><td>高（型安全ルーター）</td></tr>
+      <tr><td>成熟度</td><td>実験的</td><td>本番実績あり</td></tr>
+      <tr><td>ターゲット</td><td>native / Node.js</td><td>native</td></tr>
+      <tr><td>非同期モデル</td><td>コルーチン（async/await）</td><td>Tokio（async/await）</td></tr>
+      <tr><td>エコシステム</td><td>黎明期</td><td>成熟（crates.io）</td></tr>
+      <tr><td>依存ライブラリ</td><td>moonbitlang/async + mars</td><td>hyper + Tower + Tokio</td></tr>
+    </tbody>
+  </table>
+
+  <h2>ルーティング比較</h2>
+  <div class="cols2">
+    <div class="col col-mars">
+      <div class="col-title">MoonBit / mars</div>
+      <pre><code>let app = @mars.App::new()
+
+app.get("/", async fn(ctx) {
+  ctx.text("Hello!")
+})
+
+app.get("/users/:id", async fn(ctx) {
+  let id = ctx.param("id")
+  ctx.json("{\"id\":\"\{id}\"}")
+})
+
+app.listen("0.0.0.0:3000")</code></pre>
+      <ul class="pcon">
+        <li class="pro">シンプルで直感的</li>
+        <li class="pro">パスパラメータ対応</li>
+        <li class="con">型安全性は axum より低い</li>
+        <li class="con">ライブラリ自体が実験段階</li>
+      </ul>
+    </div>
+    <div class="col col-axum">
+      <div class="col-title">axum</div>
+      <pre><code>let app = Router::new()
+    .route("/", get(root))
+    .route("/users/:id", get(user))
+    .layer(TraceLayer::new_for_http());
+
+axum::serve(listener, app).await?;
+
+async fn user(
+    Path(id): Path&lt;u32&gt;,
+) -> Result&lt;Json&lt;User&gt;, StatusCode&gt; {
+    db::find(id).await
+        .ok_or(StatusCode::NOT_FOUND)
+        .map(Json)
+}</code></pre>
+      <ul class="pcon">
+        <li class="pro">パスパラメータを型安全に抽出</li>
+        <li class="pro">Tower ミドルウェアを合成可能</li>
+        <li class="con">学習コストがやや高い</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>エラーハンドリング</h2>
+  <div class="cols2">
+    <div class="col col-mars">
+      <div class="col-title">MoonBit / mars</div>
+      <p>MoonBit の <code>catch</code> でエラーをステータスコードにマップ。</p>
+      <pre><code>app.get("/users/:id", async fn(ctx) {
+  let id = ctx.param("id")
+  let user = find_user(id) catch {
+    NotFound => {
+      ctx.status(404)
+      ctx.json("{\"error\":\"not found\"}")
+      return
+    }
+    e => {
+      ctx.status(500)
+      ctx.json("{\"error\":\"internal\"}")
+      return
+    }
+  }
+  ctx.json(user.to_json())
+})</code></pre>
+    </div>
+    <div class="col col-axum">
+      <div class="col-title">axum</div>
+      <p><code>IntoResponse</code> を実装した独自エラー型を返すだけ。</p>
+      <pre><code>#[derive(thiserror::Error, Debug)]
+enum AppError {
+    #[error("not found")]
+    NotFound,
+    #[error("internal error")]
+    Internal(#[from] anyhow::Error),
+}
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let status = match self {
+            Self::NotFound => StatusCode::NOT_FOUND,
+            Self::Internal(_) =>
+              StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        (status, self.to_string()).into_response()
+    }
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- Architecture Part 2 -->
+  <h2>アーキテクチャ（axum 比較）</h2>
+  <div class="arch">
+    <div class="arch-label mars">MoonBit / mars</div>
+    <div class="arch-row">
+      <div class="arch-box moon"><div class="main">async/http</div><div class="sub">TCP + HTTP</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box mars"><div class="main">mars Router</div><div class="sub">Trie</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box mars"><div class="main">Middleware</div><div class="sub">チェーン</div></div>
+      <span class="arrow">→</span>
+      <div class="arch-box mars"><div class="main">Handler</div><div class="sub">async fn(ctx)</div></div>
     </div>
     <div class="arch-label axum" style="margin-top: 20px">axum</div>
     <div class="arch-row">
@@ -240,29 +534,35 @@ impl IntoResponse for AppError {
       <div class="arch-box axum"><div class="main">Handler</div><div class="sub">async fn</div></div>
     </div>
   </div>
-  <p style="margin-top: 12px">MoonBit はレイヤーが少なくシンプル。axum は Tower スタックにより認証・ロギング・レート制限などを合成できる。</p>
 
-  <!-- Summary -->
-  <h2>まとめ</h2>
+  <!-- Final summary -->
+  <h2>総合まとめ</h2>
   <table class="summary">
-    <thead><tr><th>観点</th><th>MoonBit</th><th>axum</th></tr></thead>
+    <thead><tr>
+      <th>観点</th>
+      <th><span class="badge moon-badge">async/http</span></th>
+      <th><span class="badge mars-badge">mars</span></th>
+      <th><span class="badge pony-badge">pony</span></th>
+      <th><span class="badge axum-badge">axum</span></th>
+    </tr></thead>
     <tbody>
-      <tr><td>学習コスト</td><td class="ok">低</td><td class="med">中</td></tr>
-      <tr><td>ボイラープレート</td><td class="ng">多い</td><td class="ok">少ない</td></tr>
-      <tr><td>型安全性</td><td class="med">○</td><td class="ok">◎（ルーターも）</td></tr>
-      <tr><td>本番利用</td><td class="ng">❌ 未成熟</td><td class="ok">✅ 実績あり</td></tr>
-      <tr><td>マルチターゲット</td><td class="ok">✅ native/wasm/js</td><td class="ng">❌ native のみ</td></tr>
-      <tr><td>パスパラメータ</td><td class="ng">❌ 自前実装</td><td class="ok">✅ 型安全に自動抽出</td></tr>
-      <tr><td>ミドルウェア</td><td class="ng">❌ なし</td><td class="ok">✅ Tower エコシステム</td></tr>
-      <tr><td>将来性</td><td class="med">🔭 注目株</td><td class="ok">✅ 安定</td></tr>
+      <tr><td>学習コスト</td><td class="ok">低</td><td class="ok">低</td><td class="ok">低</td><td class="med">中</td></tr>
+      <tr><td>ボイラープレート</td><td class="ng">多い</td><td class="ok">少ない</td><td class="ok">少ない</td><td class="ok">少ない</td></tr>
+      <tr><td>型安全性</td><td class="med">○</td><td class="med">○</td><td class="med">○</td><td class="ok">◎（ルーターも）</td></tr>
+      <tr><td>本番利用</td><td class="ng">❌ 未成熟</td><td class="ng">❌ 未成熟</td><td class="ng">❌ 未成熟</td><td class="ok">✅ 実績あり</td></tr>
+      <tr><td>マルチターゲット</td><td class="ok">✅ native/wasm/js</td><td class="ok">✅ native/Node.js</td><td class="med">△ native</td><td class="ng">❌ native のみ</td></tr>
+      <tr><td>パスパラメータ</td><td class="ng">❌ 自前</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅ 型安全</td></tr>
+      <tr><td>ミドルウェア</td><td class="ng">❌</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅ Tower</td></tr>
+      <tr><td>SSE / WebSocket</td><td class="ng">❌</td><td class="ok">✅ SSE</td><td class="ng">❌</td><td class="ok">✅</td></tr>
+      <tr><td>将来性</td><td class="med">🔭 注目株</td><td class="med">🔭 注目株</td><td class="med">🔭 注目株</td><td class="ok">✅ 安定</td></tr>
     </tbody>
   </table>
 
   <p style="margin-top: 20px">
-    MoonBit の HTTP ライブラリは現時点では低レベルで、実用的な Web サービスには
-    <code>bobzhang/crescent</code> 等のサードパーティフレームワークを使うか、
-    ルーター層を自前で作る必要がある。
-    言語自体の表現力（パターンマッチ・型推論・マルチターゲット）は高く、エコシステムの成熟に期待。
+    実用的な MoonBit Web サービスなら <code>mizchi/mars</code> か <code>jaredzhou/pony</code> を選択。
+    SSE や Node.js 対応が必要なら mars、シンプルなルーティング重視なら pony が適している。
+    本番ユースケースでは現時点では Rust axum が圧倒的に成熟しているが、
+    MoonBit のマルチターゲット（wasm / native / Node.js）の強みは axum にはない差別化点。
   </p>
 
 </div>
